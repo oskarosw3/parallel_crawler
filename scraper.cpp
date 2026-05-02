@@ -18,6 +18,9 @@
 #include <queue>
 #include <condition_variable>
 
+#include "scraper.h"
+#include "queue.h"
+
 
 typedef std::vector<uint32_t>::const_iterator Iter;
 
@@ -41,7 +44,7 @@ void Identity(std::vector<char*> urls) {
     return;
 }
 
-void OnlyStartingWith(std::vector<std::string>* urls, std::string start) { // TODO: change urls to a reference
+void OnlyStartingWith(std::vector<std::string>* urls, std::string start) { //
 
     // https://en.cppreference.com/cpp/regex/regex_match
     std::string regex_start = start + "(.)*";
@@ -71,7 +74,7 @@ void ScraperAux(int site_index, int* results){
 //-----------------------------------------------------------------------------
 
 
-int Scraper(char* website) {
+int Scraper(std::string website) {
 
     // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
     // The sub-sites would be stored in a setlist
@@ -87,8 +90,10 @@ int Scraper(char* website) {
 
 
     // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
-    char* link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
+    std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
 ;
+
+    //SafeUnboundedQueueCV<std::string> queue;
 
 
     CURLcode result = curl_global_init(CURL_GLOBAL_ALL);

@@ -17,9 +17,9 @@
 #include <queue>
 #include <condition_variable>
 
-#include "queue.cpp"
-#include "scraper.cpp"
-#include "coarse_set.cpp"
+#include "queue.h"
+#include "scraper.h"
+#include "coarse_set.h"
 
 
 int main() {
