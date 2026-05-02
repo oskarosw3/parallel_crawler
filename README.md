@@ -2,6 +2,6 @@
 Parallel Crawler made as a project for CSE305 : Concurrent and Distributed Computing at Ecole Polytechnique
 
 
-For installation the folllowing packages are needed: 
+For installation the folllowing packages are needed: \
 curl - complicated installation \
-tidy - sudo apt install libtidy-dev
+tidy - sudo apt install libtidy-dev -- not needed for now, replaced with regex
