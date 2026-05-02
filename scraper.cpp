@@ -20,6 +20,7 @@
 
 #include "scraper.h"
 #include "queue.h"
+#include "coarse_set.h"
 
 
 typedef std::vector<uint32_t>::const_iterator Iter;
@@ -64,9 +65,10 @@ void OnlyStartingWith(std::vector<std::string>* urls, std::string start) { //
 }
 
 
-void ScraperAux(int site_index, int* results){
+void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue) {
 
-
+    std::cout << std::endl;
+    return;
     // For the number of threads active at the same time it might be best to check with the
 }
 
@@ -88,12 +90,21 @@ int Scraper(std::string website) {
     CURL *curl;
     std::string readBuffer;
 
+    size_t num_threads =  3;
+    std::vector<std::thread> workers(num_threads);
+
+    CoarseSetList visited_sites;
 
     // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
     std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
 ;
 
-    //SafeUnboundedQueueCV<std::string> queue;
+    SafeUnboundedQueueCV<std::string> queue;
+    queue.push(website);
+
+    for (size_t i = 0; i < num_threads; ++i) {
+        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue));
+    }
 
 
     CURLcode result = curl_global_init(CURL_GLOBAL_ALL);

@@ -22,6 +22,9 @@
 #include <queue>
 #include <condition_variable>
 
+#include "coarse_set.h"
+#include "queue.h"
+
 typedef std::vector<uint32_t>::const_iterator Iter;
 
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* userp);
@@ -31,7 +34,7 @@ void Identity(std::vector<char*> urls);
 
 void OnlyStartingWith(std::vector<std::string>* urls, std::string start);
 
-void ScraperAux(int site_index, int* results);
+void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue);
 
 int Scraper(std::string website);
 
