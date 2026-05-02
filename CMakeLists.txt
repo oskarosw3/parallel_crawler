@@ -8,6 +8,9 @@ find_package(CURL REQUIRED)
 set(CMAKE_CXX_STANDARD 20)
 
 
-add_executable(parallel_crawler main.cpp)
+add_executable(parallel_crawler main.cpp
+        queue.cpp
+        coarse_set.cpp
+        scraper.cpp)
 
 target_link_libraries(parallel_crawler PRIVATE CURL::libcurl)
