@@ -28,6 +28,30 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *stream)
     return written;
 }
 
+void Identity(std::vector<char*> urls) {
+
+    return;
+}
+
+void OnlyStartingWith(std::vector<std::string> urls, std::string start) { // TODO: change urls to a reference
+
+    // https://en.cppreference.com/cpp/regex/regex_match
+    std::string regex_start = start + "(.)+";
+    std::smatch match;
+
+    std::regex re(regex_start);
+    std::vector<int> indexes_to_erase;
+    for (int index = 0; index < urls.size(); index++) {
+        if (!std::regex_match(urls[index], re )) {
+            indexes_to_erase.push_back(index);
+        }
+    }
+    for (int index = 0; index < indexes_to_erase.size(); index++) {
+        urls.erase(urls.begin() + indexes_to_erase[index]- index);
+    }
+
+}
+
 
 void ScraperAux(int site_index, int* results){
 
