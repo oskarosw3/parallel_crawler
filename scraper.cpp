@@ -65,51 +65,28 @@ void OnlyStartingWith(std::vector<std::string>* urls, std::string start) { //
 }
 
 
-void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue) {
+void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::atomic_int finished_threads,
+    std::condition_variable& not_empty, size_t total_threads ) {
 
-    std::cout << std::endl;
-    return;
-    // For the number of threads active at the same time it might be best to check with the
-}
-
-
-//-----------------------------------------------------------------------------
-
-
-int Scraper(std::string website) {
-
-    // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
-    // The sub-sites would be stored in a setlist
-
-    // it might be better to somehow get all links first
+    //for more statistics there could be a atomic int with the current depth - not correct
+    // maybe a second queue that has the same lock, but gives out the depth
 
 
 
-    //temporary example as a placeholder to learn how libcurl works https://curl.se/libcurl/c/simple.html
+
+    //currently it has errors due to atomic_int, cv mismatch, but the main idea is
+
+    // TODO: while (atomic_int finished_threads < total threads) - so the threads might start again even after the queue was once empty
+
+    // TODO: then at the end we have cv that wakes up threads after the queue is no longer empty, and also after a thread finishes so all threads might finish
 
     CURL *curl;
     std::string readBuffer;
-
-    size_t num_threads =  3;
-    std::vector<std::thread> workers(num_threads);
-
-    CoarseSetList visited_sites;
-
-    // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
     std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
-;
-
-    SafeUnboundedQueueCV<std::string> queue;
-    queue.push(website);
-
-    for (size_t i = 0; i < num_threads; ++i) {
-        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue));
-    }
-
 
     CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
     if(result != CURLE_OK)
-        return (int)result;
+        return;
 
     curl = curl_easy_init();
     if(curl) {
@@ -173,6 +150,51 @@ int Scraper(std::string website) {
         curl_easy_cleanup(curl);
 
     }
+
+    std::cout << std::endl;
+    return;
+    // For the number of threads active at the same time it might be best to check with the
+}
+
+
+//-----------------------------------------------------------------------------
+
+
+int Scraper(std::string website) {
+
+    // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
+    // The sub-sites would be stored in a setlist
+
+    // it might be better to somehow get all links first
+
+
+
+    //temporary example as a placeholder to learn how libcurl works https://curl.se/libcurl/c/simple.html
+
+
+
+    size_t num_threads =  3;
+    std::vector<std::thread> workers(num_threads);
+
+    CoarseSetList visited_sites;
+    std::atomic_int finished_threads = 0;
+    std::condition_variable not_empty;
+
+    // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
+
+;
+
+    SafeUnboundedQueueCV<std::string> queue;
+    queue.push(website);
+
+    for (size_t i = 0; i < num_threads; ++i) {
+        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue), finished_threads,
+            &not_empty, num_threads);
+
+    }
+
+
+
     curl_global_cleanup();
     return 0;
 }

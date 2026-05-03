@@ -34,7 +34,8 @@ void Identity(std::vector<char*> urls);
 
 void OnlyStartingWith(std::vector<std::string>* urls, std::string start);
 
-void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue);
+void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::atomic_int finished_threads,
+    std::condition_variable& not_empty, size_t total_threads);
 
 int Scraper(std::string website);
 
