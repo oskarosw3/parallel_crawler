@@ -80,6 +80,8 @@ void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>&
 
     // TODO: then at the end we have cv that wakes up threads after the queue is no longer empty, and also after a thread finishes so all threads might finish
 
+    // Problem -> it's not a full BFS with the way my Queue will take care of them, and we might not get proper "shortest link", but checking if in and then check if n_stored < n_new might be costly
+
     CURL *curl;
     std::string readBuffer;
     std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
