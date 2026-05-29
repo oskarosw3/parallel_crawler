@@ -91,9 +91,12 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
 
         std::string website;
         website = queue.check_and_pop();
+
         if (website == "done") {
             return;
         }
+
+        visited_sites.add(website); // TODO: Check later if checking existance at this point is better
 
 
         CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
@@ -112,8 +115,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
             //    curl_global_cleanup();
             //    return -1;
             // }
+            char website_char[website.length() + 1];  //required for curlopt_url
+            std::copy(website.begin(), website.end(), website_char);
+            website_char[website.length()] = '\0';
 
-            curl_easy_setopt(curl, CURLOPT_URL, "https://example.com");
+            curl_easy_setopt(curl, CURLOPT_URL, website_char);
             //curl_easy_setopt(curl, CURLOPT_URL, "https://pl.wikipedia.org/wiki/Braniewo");
 
             // For the wikipedia to work
@@ -131,7 +137,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
 
 
             result = curl_easy_perform(curl);
-            std::cout << readBuffer << std::endl;
+            //std::cout << "readBuffer" << readBuffer << std::endl;
             if(result != CURLE_OK)
                 fprintf(stderr, "curl_easy_perform() failed: %s\n",
                         curl_easy_strerror(result));
@@ -151,7 +157,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
                 }
 
                 for (const auto& link : links) {
-                    std::cout << link << std::endl;
+                    if (!visited_sites.contains(link)) {
+                        visited_sites.add(link);
+                        std::cout << link << std::endl;
+                    }
+
                 }
 
 
@@ -159,11 +169,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
 
             //fclose(headerfile);
 
-            curl_easy_cleanup(curl);
+            curl_easy_cleanup(curl); //TODO: Think if it might be better to setup once and just change websites
 
         }
 
-        std::cout << "a" << std::endl;
+        //std::cout << "a" << std::endl;
     }
     return;
     // For the number of threads active at the same time it might be best to check with the

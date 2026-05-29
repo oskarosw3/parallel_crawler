@@ -39,6 +39,6 @@ int main() {
     //
     // std::cout << urls.size() << std::endl;
 
-    Scraper("aaa");
+    Scraper("https://example.com");
     return 0;
 }
