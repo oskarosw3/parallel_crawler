@@ -20,8 +20,8 @@
 
 #include "scraper.h"
 #include "queue.h"
-#include "coarse_set.h"
-
+//#include "coarse_set.h"
+#include "SetList.h"
 
 typedef std::vector<uint32_t>::const_iterator Iter;
 
@@ -65,7 +65,7 @@ void OnlyStartingWith(std::vector<std::string>* urls, std::string start) { //
 }
 
 
-void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::atomic_int finished_threads,
+void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::atomic_int& finished_threads,
     std::condition_variable& not_empty, size_t total_threads ) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
@@ -82,78 +82,89 @@ void ScraperAux(CoarseSetList& visited_sites, SafeUnboundedQueueCV<std::string>&
 
     // Problem -> it's not a full BFS with the way my Queue will take care of them, and we might not get proper "shortest link", but checking if in and then check if n_stored < n_new might be costly
 
-    CURL *curl;
-    std::string readBuffer;
-    std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
-
-    CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
-    if(result != CURLE_OK)
-        return;
-
-    curl = curl_easy_init();
-    if(curl) {
-
-        //static const char *headerfilename = "head.out";
-        //FILE *headerfile;
-
-        //headerfile = fopen(headerfilename, "wb");
-        //if(!headerfile) {
-        //    curl_easy_cleanup(curl);
-        //    curl_global_cleanup();
-        //    return -1;
-        // }
-
-        curl_easy_setopt(curl, CURLOPT_URL, "https://example.com");
-        //curl_easy_setopt(curl, CURLOPT_URL, "https://pl.wikipedia.org/wiki/Braniewo");
-
-        // For the wikipedia to work
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, "User-Agent: Parallel_Crawler");
-        //headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-        //  If i need writing to a file: https://curl.se/libcurl/c/sepheaders.html
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
-        //curl_easy_setopt(curl, CURLOPT_HEADERDATA, headerfile);
+    while (1) {
+        CURL *curl;
+        std::string readBuffer;
+        std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
 
 
-        result = curl_easy_perform(curl);
-        std::cout << readBuffer << std::endl;
+
+        std::string website;
+        website = queue.check_and_pop();
+        if (website == "done") {
+            return;
+        }
+
+
+        CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
         if(result != CURLE_OK)
-            fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                    curl_easy_strerror(result));
-        else {
+            return;
 
-            //https://en.cppreference.com/cpp/regex/regex_search
-            std::regex link_pattern(link_match);
-            std::smatch match;
+        curl = curl_easy_init();
+        if(curl) {
 
-            std::set<std::string> links;
-            std::string::const_iterator searchStart(readBuffer.cbegin());
+            //static const char *headerfilename = "head.out";
+            //FILE *headerfile;
 
-            std::cout << "Links:" << std::endl;
-            while (std::regex_search(searchStart, readBuffer.cend(), match, link_pattern)) {
-                links.insert(match[1]);
-                searchStart = match.suffix().first;
+            //headerfile = fopen(headerfilename, "wb");
+            //if(!headerfile) {
+            //    curl_easy_cleanup(curl);
+            //    curl_global_cleanup();
+            //    return -1;
+            // }
+
+            curl_easy_setopt(curl, CURLOPT_URL, "https://example.com");
+            //curl_easy_setopt(curl, CURLOPT_URL, "https://pl.wikipedia.org/wiki/Braniewo");
+
+            // For the wikipedia to work
+            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+            struct curl_slist *headers = NULL;
+            headers = curl_slist_append(headers, "User-Agent: Parallel_Crawler");
+            //headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate");
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+            //  If i need writing to a file: https://curl.se/libcurl/c/sepheaders.html
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+            //curl_easy_setopt(curl, CURLOPT_HEADERDATA, headerfile);
+
+
+            result = curl_easy_perform(curl);
+            std::cout << readBuffer << std::endl;
+            if(result != CURLE_OK)
+                fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                        curl_easy_strerror(result));
+            else {
+
+                //https://en.cppreference.com/cpp/regex/regex_search
+                std::regex link_pattern(link_match);
+                std::smatch match;
+
+                std::set<std::string> links;
+                std::string::const_iterator searchStart(readBuffer.cbegin());
+
+                std::cout << "Links:" << std::endl;
+                while (std::regex_search(searchStart, readBuffer.cend(), match, link_pattern)) {
+                    links.insert(match[1]);
+                    searchStart = match.suffix().first;
+                }
+
+                for (const auto& link : links) {
+                    std::cout << link << std::endl;
+                }
+
+
             }
 
-            for (const auto& link : links) {
-                std::cout << link << std::endl;
-            }
+            //fclose(headerfile);
 
+            curl_easy_cleanup(curl);
 
         }
 
-        //fclose(headerfile);
-
-        curl_easy_cleanup(curl);
-
+        std::cout << "a" << std::endl;
     }
-
-    std::cout << std::endl;
     return;
     // For the number of threads active at the same time it might be best to check with the
 }
@@ -175,10 +186,10 @@ int Scraper(std::string website) {
 
 
 
-    size_t num_threads =  3;
+    size_t num_threads =  1;
     std::vector<std::thread> workers(num_threads);
 
-    CoarseSetList visited_sites;
+    SetList visited_sites;
     std::atomic_int finished_threads = 0;
     std::condition_variable not_empty;
 
@@ -187,12 +198,17 @@ int Scraper(std::string website) {
 ;
 
     SafeUnboundedQueueCV<std::string> queue;
+    queue.total_threads = num_threads;
     queue.push(website);
 
     for (size_t i = 0; i < num_threads; ++i) {
-        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue), finished_threads,
-            &not_empty, num_threads);
+        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue), std::ref(finished_threads),
+            std::ref(not_empty), num_threads);
 
+    }
+
+    for (int i = 0; i < num_threads; ++i) {
+        workers[i].join();
     }
 
 

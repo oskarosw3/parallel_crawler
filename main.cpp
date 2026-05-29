@@ -19,7 +19,8 @@
 
 #include "queue.h"
 #include "scraper.h"
-#include "coarse_set.h"
+//#include "coarse_set.h"
+#include "SetList.h"
 
 
 int main() {

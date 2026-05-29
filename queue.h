@@ -16,10 +16,16 @@ class SafeUnboundedQueueCV {
     std::queue<E> elements;
     std::mutex lock;
     std::condition_variable not_empty;
+
 public:
+    std::atomic<int> threads_waiting = 0;
+    bool finished = false;
+    int total_threads;
     SafeUnboundedQueueCV() {}
     void push(const E& element);
     E pop();
+    E check_and_pop();
+    void wake_up();
     bool is_empty() const { return this->elements.empty(); }
 };
 
@@ -37,11 +43,44 @@ template <class E>
 E SafeUnboundedQueueCV<E>::pop() {
     std::unique_lock<std::mutex> guard(this->lock);
     while (this->is_empty()) {
+        threads_waiting.fetch_add(1);
         this->not_empty.wait(guard);
+        threads_waiting.fetch_sub(1);
     }
     E first_element = elements.front();
     this->elements.pop();
     return first_element;
+}
+
+template <class E>
+E SafeUnboundedQueueCV<E>::check_and_pop() {
+    std::unique_lock<std::mutex> guard(this->lock);
+    if (threads_waiting.load() == total_threads - 1 ) {
+        if (is_empty()) {
+            finished = true; //doesn't have to be atomic as we only change it to true
+            wake_up();
+            return "done";
+
+        }
+    }
+    threads_waiting.fetch_add(1);
+    while (this->is_empty()) {
+
+
+        // dispose of lock while it waits
+        this->not_empty.wait(guard);
+        if (finished){ return "done";}
+
+    }
+    threads_waiting.fetch_sub(1);
+    E first_element = elements.front();
+    this->elements.pop();
+    return first_element;
+}
+
+template <class E>
+void SafeUnboundedQueueCV<E>::wake_up() {
+    not_empty.notify_all();
 }
 
 #endif //PARALLEL_CRAWLER_QUEUE_H

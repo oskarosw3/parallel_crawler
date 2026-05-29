@@ -9,10 +9,11 @@ set(CMAKE_CXX_STANDARD 20)
 
 
 add_executable(parallel_crawler main.cpp
-        coarse_set.cpp
+        SetList.cpp
+        SetList.h
         scraper.cpp
-        coarse_set.h
         queue.h
-        scraper.h)
+        scraper.h
+        )
 
 target_link_libraries(parallel_crawler PRIVATE CURL::libcurl)

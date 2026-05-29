@@ -1,0 +1,54 @@
+#ifndef PARALLEL_CRAWLER_SET_LIST_H
+#define PARALLEL_CRAWLER_SET_LIST_H
+
+#include <string>
+#include <mutex>
+#include <climits>
+#include <functional>
+
+class Node {
+public:
+    std::mutex lock;
+    std::string item;
+    unsigned long key;
+    Node * next;
+    Node() {}
+    Node(const std::string& s) {
+        this->item = s;
+        this->key = std::hash<std::string>{}(s);
+        this->next = NULL;
+    }
+    Node(unsigned long k) {
+        this->item = "";
+        this->key = k;
+        this->next = NULL;
+    }
+};
+
+void DeleteNodeChain(Node* start);
+
+class SetList {
+protected:
+    Node* head;
+    static const unsigned long LOWEST_KEY = 0;
+    static const unsigned long LARGEST_KEY = ULONG_MAX;
+
+    // returns the pointer to the last node with key < hash(val)
+    // with keeping this and the next nodes locked
+    Node* search(const std::string& val) const;
+
+public:
+    SetList();
+    ~SetList();
+    bool add(const std::string& val);
+    bool remove(const std::string& val);
+    bool contains(const std::string& val) const;
+
+    template <typename F>
+    void transform(F f);
+
+    void print() const; // for testing
+    unsigned long size() const; // for testing
+};
+
+#endif //PARALLEL_CRAWLER_SET_LIST_H
