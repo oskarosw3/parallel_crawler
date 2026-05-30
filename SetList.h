@@ -23,6 +23,7 @@ public:
         this->key = k;
         this->next = NULL;
     }
+
 };
 
 void DeleteNodeChain(Node* start);
@@ -40,6 +41,16 @@ protected:
 public:
     SetList();
     ~SetList();
+    //those functions for auto&, they are not thread-safe but they are only used in a non-concurrent part
+    Node* begin () {return head;}
+    Node* end_aux(Node* node) {
+        if (node->next == NULL) {
+            return node;
+        }
+        return end_aux(node->next);
+    }
+    Node* end() { return end_aux(head);}
+
     bool add(const std::string& val);
     bool remove(const std::string& val);
     bool contains(const std::string& val) const;

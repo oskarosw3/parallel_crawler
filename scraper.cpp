@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <fstream>
 
 #include <regex>
 #include <set>
@@ -84,8 +85,7 @@ std::string FindMainURL(std::string url) {
     }
 
 
-void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::atomic_int& finished_threads,
-    std::condition_variable& not_empty, size_t total_threads ) {
+void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue , std::string core_website, bool filter_key_function) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -173,13 +173,29 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
                 while (std::regex_search(searchStart, readBuffer.cend(), match, link_pattern)) {
                     links.insert(match[1]);
                     searchStart = match.suffix().first;
+
                 }
 
+                std::string real_link;
                 for (const auto& link : links) {
-                    if (!visited_sites.contains(link)) {
-                        visited_sites.add(link);
-                        std::cout << link << std::endl;
+                    if (link.starts_with('/')) {
+                        real_link = core_website + link;
                     }
+                    else{
+                        real_link = link;
+                    }
+                    if (!visited_sites.contains(real_link)) {
+                        if (filter_key_function) {
+                            if (real_link.starts_with(core_website)) {
+                                queue.push(real_link);
+                            }
+                        }
+                        else {
+                            queue.push(real_link);
+                        }
+                        std::cout << real_link << std::endl;
+                    }
+
 
                 }
 
@@ -202,7 +218,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
 //-----------------------------------------------------------------------------
 
 
-int Scraper(std::string website) {
+int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function) {
 
     // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
     // The sub-sites would be stored in a setlist
@@ -215,8 +231,8 @@ int Scraper(std::string website) {
 
 
 
-    size_t num_threads =  1;
-    std::vector<std::thread> workers(num_threads);
+    size_t num_threads = number_of_threads;
+    std::vector<std::thread> workers(number_of_threads);
 
     SetList visited_sites;
     std::atomic_int finished_threads = 0;
@@ -227,21 +243,42 @@ int Scraper(std::string website) {
 ;
 
     SafeUnboundedQueueCV<std::string> queue;
-    queue.total_threads = num_threads;
+    queue.total_threads = number_of_threads;
     queue.push(website);
 
-    for (size_t i = 0; i < num_threads; ++i) {
-        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue), std::ref(finished_threads),
-            std::ref(not_empty), num_threads);
+
+    std::string core_website = FindMainURL(website);
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for (size_t i = 0; i < number_of_threads; ++i) {
+        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function);
 
     }
 
-    for (int i = 0; i < num_threads; ++i) {
+    for (int i = 0; i < number_of_threads; ++i) {
         workers[i].join();
     }
 
 
 
     curl_global_cleanup();
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << end - start << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start) << std::endl;
+
+    //https://stackoverflow.com/questions/33588266/how-to-save-txt-file-in-c
+    std::ofstream outfile;
+    outfile.open(file_name, std::ofstream::trunc);
+    Node* curr = visited_sites.begin() -> next;
+
+    while (curr->next != NULL) {
+        outfile << curr->item << std::endl;
+        curr = curr->next;
+    }
+
+
     return 0;
 }

@@ -34,10 +34,10 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *stream);
 void Identity(std::vector<char*> urls);
 
 void OnlyStartingWith(std::vector<std::string>* urls, std::string start);
+std::string FindMainURL(std::string url);
 
-void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::atomic_int& finished_threads,
-    std::condition_variable& not_empty, size_t total_threads);
+void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::string core_website, bool filter_key_function);
 
-int Scraper(std::string website);
+int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function);
 
 #endif

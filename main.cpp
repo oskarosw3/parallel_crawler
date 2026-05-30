@@ -39,6 +39,6 @@ int main() {
     //
     // std::cout << urls.size() << std::endl;
 
-    Scraper("https://steamculturalcapital.com/");
+    Scraper("https://steamculturalcapital.com/", 1, "scraped_websites.txt", true);
     return 0;
 }
