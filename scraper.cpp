@@ -106,7 +106,9 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
         std::string readBuffer;
         std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
 
-
+        if (visited_sites.size() > 20) {
+            return;
+        }
 
         std::string website;
         website = queue.check_and_pop();
@@ -178,6 +180,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
 
                 std::string real_link;
                 for (const auto& link : links) {
+                    if (link.starts_with('#')) continue; //wikipedia clauses
+                    if (link.find("index.php") != std::string::npos) continue;  //wikipedia clauses
                     if (link.starts_with('/')) {
                         real_link = core_website + link;
                     }
