@@ -10,7 +10,8 @@
 #include <climits>
 #include <future>
 #include <string>
-
+#include <string_view>
+#include <type_traits>
 
 #include <regex>
 #include <set>
@@ -64,6 +65,24 @@ void OnlyStartingWith(std::vector<std::string>* urls, std::string start) { //
 
 }
 
+std::string FindMainURL(std::string url) {
+
+    int start_find;
+    if (url.find("http") == std::string::npos) {
+        start_find = 0;
+    }
+    else {
+        start_find = 8;
+    }
+    if (url.find("/", start_find) == std::string::npos) {
+        return url; // we assume all are correct
+
+    }
+    else {
+        return url.substr(0, url.find("/", start_find));
+    }
+    }
+
 
 void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue, std::atomic_int& finished_threads,
     std::condition_variable& not_empty, size_t total_threads ) {
@@ -72,8 +91,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
     // maybe a second queue that has the same lock, but gives out the depth
 
 
-
-
+    //std::cout << FindMainURL("https://www.steamculturalcapital.com/") << std::endl;
+    //std::cout << FindMainURL("https://www.twitch.tv/northernlion") << std::endl;
     //currently it has errors due to atomic_int, cv mismatch, but the main idea is
 
     // TODO: while (atomic_int finished_threads < total threads) - so the threads might start again even after the queue was once empty
