@@ -80,7 +80,7 @@ bool SetList::add(const std::string& val) {
     return !exists;
 }
 
-bool SetList::add_and_update_distance(const std::string& val, int distance, std::set<std::string> links) {
+bool SetList::add_and_update_distance(const std::string& val, int distance, std::set<std::string> links, std::string& parent) {
     Node* pred = this->search(val);
     Node* curr = pred->next;
     bool exists = (curr->key == std::hash<std::string>{}(val));
@@ -89,11 +89,13 @@ bool SetList::add_and_update_distance(const std::string& val, int distance, std:
         Node* node = new Node(val);
         node->next = curr;
         node->distance = distance;
+        node->parent = parent;
         pred->next = node;
     }
     else {
         if (distance < curr->distance) {
             curr->distance = distance;
+            curr->parent = parent;
         }
         links = curr->site_links;
     }

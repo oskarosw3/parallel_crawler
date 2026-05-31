@@ -15,6 +15,7 @@ public:
 
     std::set<std::string> site_links;
     bool has_links = false;
+    std::string parent;
 
     Node * next;
     Node() {}
@@ -57,7 +58,7 @@ public:
     Node* end() { return end_aux(head);}
 
     bool add(const std::string& val);
-    bool add_and_update_distance(const std::string& val, int distance, std::set<std::string> links);
+    bool add_and_update_distance(const std::string& val, int distance, std::set<std::string> links, std::string& parent);
     bool add_links(const std::string& val, std::set<std::string> links);
     bool remove(const std::string& val);
     bool contains(const std::string& val) const;

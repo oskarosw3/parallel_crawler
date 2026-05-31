@@ -78,7 +78,7 @@ std::string FindMainURL(const std::string& url) {
     }
 
 
-void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::string, int>>& queue , std::string core_website, bool filter_key_function) {
+void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue , std::string core_website, bool filter_key_function) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -112,10 +112,13 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
         }
 
 
-        std::pair<std::string, int> current_pair = queue.check_and_pop();
+        std::pair<std::pair<std::string, int>, std::string> current_pair = queue.check_and_pop();
 
-        std::string website = current_pair.first;
-        int current_depth = current_pair.second;
+        std::pair<std::string, int> new_pair = current_pair.first;
+        std::string parent = current_pair.second;
+
+        std::string website = new_pair.first;
+        int current_depth = new_pair.second;
 
         if (website == "")  {
             curl_easy_cleanup(curl);
@@ -126,7 +129,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
         std::set<std::string> possible_links;
 
-        if (visited_sites.add_and_update_distance(website, current_depth, std::ref(possible_links))) {
+        if (visited_sites.add_and_update_distance(website, current_depth, std::ref(possible_links), parent)) {
             //if it has a lower depth, then scrape it again
             // it was in the beginning before to reduce unnessery scraping, but it might be better here with link_cache
 
@@ -147,11 +150,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                     if (tested_distance > current_depth + 1){
                         if (filter_key_function) {
                             if (real_link.starts_with(core_website)) {
-                                queue.push(std::pair(real_link, current_depth +1) );
+                                queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
                             }
                         }
                         else {
-                            queue.push(std::pair(real_link, current_depth +1) );
+                            queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
                         }
                     }
                     //std::cout << real_link << std::endl;
@@ -159,11 +162,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                 else {
                     if (filter_key_function) {
                         if (real_link.starts_with(core_website)) {
-                            queue.push(std::pair(real_link, current_depth +1) );
+                            queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
                         }
                     }
                     else {
-                        queue.push(std::pair(real_link, current_depth +1) );
+                        queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
                     }
 
                 }
@@ -255,11 +258,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                         if (tested_distance > current_depth + 1){
                             if (filter_key_function) {
                                 if (real_link.starts_with(core_website)) {
-                                    queue.push(std::pair(real_link, current_depth +1) );
+                                    queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
                                 }
                             }
                         else {
-                            queue.push(std::pair(real_link, current_depth +1) );
+                            queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
                         }
                         }
                         //std::cout << real_link << std::endl;
@@ -267,11 +270,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                     else {
                         if (filter_key_function) {
                             if (real_link.starts_with(core_website)) {
-                                queue.push(std::pair(real_link, current_depth +1) );
+                                queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
                             }
                         }
                         else {
-                            queue.push(std::pair(real_link, current_depth +1) );
+                            queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
                         }
 
                     }
@@ -324,9 +327,9 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
 ;
 
-    SafeUnboundedQueueCV<std::pair<std::string, int>> queue;
+    SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>> queue;
     queue.total_threads = number_of_threads;
-    queue.push({website,0});
+    queue.push(std::pair(std::pair(website, 0), "root"));
 
 
     std::string core_website = FindMainURL(website);
@@ -357,7 +360,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     Node* curr = visited_sites.begin() -> next;
 
     while (curr->next != NULL) {
-        outfile << curr->item << " " << curr->distance << std::endl;
+        outfile << curr->item << " " << curr->distance << "    parent: " << curr->parent  << std::endl;
         curr = curr->next;
     }
 
