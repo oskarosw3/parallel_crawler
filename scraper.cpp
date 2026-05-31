@@ -58,7 +58,7 @@ void OnlyStartingWith(std::set<std::string>* urls, std::string start) { //
 
 
 
-std::string FindMainURL(std::string url) {
+std::string FindMainURL(const std::string& url) {
 
     int start_find;
     if (url.find("http") == std::string::npos) {
@@ -105,7 +105,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
 
 
-        if (visited_sites.size() > 200) {
+        if (visited_sites.size() > 20) {
             curl_easy_cleanup(curl);
             return;
         }
@@ -186,11 +186,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
             //    curl_global_cleanup();
             //    return -1;
             // }
-            char website_char[website.length() + 1];  //required for curlopt_url
-            std::copy(website.begin(), website.end(), website_char);
-            website_char[website.length()] = '\0';
 
-            curl_easy_setopt(curl, CURLOPT_URL, website_char);
+            curl_easy_setopt(curl, CURLOPT_URL, website.c_str());
             //curl_easy_setopt(curl, CURLOPT_URL, "https://pl.wikipedia.org/wiki/Braniewo");
 
             // For the wikipedia to work

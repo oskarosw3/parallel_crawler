@@ -34,7 +34,7 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *stream);
 void Identity(std::vector<char*> urls);
 
 void OnlyStartingWith(std::vector<std::string>* urls, std::string start);
-std::string FindMainURL(std::string url);
+std::string FindMainURL(const std::string& url);
 
 void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::string, int>>& queue, std::string core_website, bool filter_key_function);
 
