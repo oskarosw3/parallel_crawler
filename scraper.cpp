@@ -95,9 +95,6 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
     //std::cout << FindMainURL("https://www.twitch.tv/northernlion") << std::endl;
     //currently it has errors due to atomic_int, cv mismatch, but the main idea is
 
-    // TODO: while (atomic_int finished_threads < total threads) - so the threads might start again even after the queue was once empty
-
-    // TODO: then at the end we have cv that wakes up threads after the queue is no longer empty, and also after a thread finishes so all threads might finish
 
     // Problem -> it's not a full BFS with the way my Queue will take care of them, and we might not get proper "shortest link", but checking if in and then check if n_stored < n_new might be costly
 
@@ -106,7 +103,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
         std::string readBuffer;
         std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
 
-        if (visited_sites.size() > 200) {
+        if (visited_sites.size() > 1000) {
             return;
         }
 
@@ -122,7 +119,58 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
         //visited_sites.add(website); // TODO: Check later if checking existance at this point is better
 
-        visited_sites.add_and_update_distance(website, current_depth); //if it has a lower depth, then scrape it again
+        std::set<std::string> possible_links;
+
+        if (visited_sites.add_and_update_distance(website, current_depth, std::ref(possible_links))) {
+            //if it has a lower depth, then scrape it again
+            // it was in the beginning before to reduce unnessery scraping, but it might be better here with link_cache
+
+            std::set<std::string> links = possible_links;
+            std::string real_link;
+            for (const auto& link : links) {
+                //std::cout << link << std::endl;
+                if (link.starts_with('#')) continue; //wikipedia clauses
+                if (link.find("index.php") != std::string::npos) continue;  //wikipedia clauses
+                if (link.starts_with('/')) {
+                    real_link = core_website + link;
+                }
+                else{
+                    real_link = link;
+                }
+                int tested_distance = -1;
+                if (visited_sites.contains_and_distance(real_link, tested_distance)) {
+                    if (tested_distance > current_depth + 1){
+                        if (filter_key_function) {
+                            if (real_link.starts_with(core_website)) {
+                                queue.push(std::pair(real_link, current_depth +1) );
+                            }
+                        }
+                        else {
+                            queue.push(std::pair(real_link, current_depth +1) );
+                        }
+                    }
+                    //std::cout << real_link << std::endl;
+                }
+                else {
+                    if (filter_key_function) {
+                        if (real_link.starts_with(core_website)) {
+                            queue.push(std::pair(real_link, current_depth +1) );
+                        }
+                    }
+                    else {
+                        queue.push(std::pair(real_link, current_depth +1) );
+                    }
+
+                }
+
+
+            }
+        }
+        else {
+
+
+
+
 
         CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
         if(result != CURLE_OK)
@@ -182,8 +230,12 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
                 }
 
+                visited_sites.add_links(website, links);
+
                 std::string real_link;
+
                 for (const auto& link : links) {
+                    //std::cout << link << std::endl;
                     if (link.starts_with('#')) continue; //wikipedia clauses
                     if (link.find("index.php") != std::string::npos) continue;  //wikipedia clauses
                     if (link.starts_with('/')) {
@@ -193,7 +245,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                         real_link = link;
                     }
                     int tested_distance = -1;
-                    if (visited_sites.contains_and_distance(real_link, tested_distance)) { //performance sink
+                    if (visited_sites.contains_and_distance(real_link, tested_distance)) {
                         if (tested_distance > current_depth + 1){
                             if (filter_key_function) {
                                 if (real_link.starts_with(core_website)) {
@@ -228,6 +280,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
             curl_easy_cleanup(curl); //TODO: Think if it might be better to setup once and just change websites
 
+        }
         }
 
         //std::cout << "a" << std::endl;

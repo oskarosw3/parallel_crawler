@@ -12,6 +12,10 @@ public:
     std::string item;
     int distance; //how far away from the main link it is
     unsigned long key;
+
+    std::set<std::string> site_links;
+    bool has_links = false;
+
     Node * next;
     Node() {}
     Node(const std::string& s) {
@@ -53,7 +57,8 @@ public:
     Node* end() { return end_aux(head);}
 
     bool add(const std::string& val);
-    bool add_and_update_distance(const std::string& val, int distance);
+    bool add_and_update_distance(const std::string& val, int distance, std::set<std::string> links);
+    bool add_links(const std::string& val, std::set<std::string> links);
     bool remove(const std::string& val);
     bool contains(const std::string& val) const;
     bool contains_and_distance(const std::string& val, int& distance);
