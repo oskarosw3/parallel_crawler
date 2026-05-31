@@ -36,8 +36,9 @@ void Identity(std::vector<char*> urls);
 void OnlyStartingWith(std::vector<std::string>* urls, std::string start);
 std::string FindMainURL(const std::string& url);
 
-void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue, std::string core_website, bool filter_key_function);
+void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue,
+    std::string core_website, bool filter_key_function, std::string filter_word);
 
-int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function);
+int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function, std::string filter_word);
 
 #endif

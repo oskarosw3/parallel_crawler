@@ -78,7 +78,8 @@ std::string FindMainURL(const std::string& url) {
     }
 
 
-void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue , std::string core_website, bool filter_key_function) {
+void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue ,
+    std::string core_website, bool filter_key_function, std::string filter_word) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -258,11 +259,16 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
                         if (tested_distance > current_depth + 1){
                             if (filter_key_function) {
                                 if (real_link.starts_with(core_website)) {
-                                    queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                                    if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
+                                        queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                                    }
+
                                 }
                             }
                         else {
-                            queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
+                            if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
+                                queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                            }
                         }
                         }
                         //std::cout << real_link << std::endl;
@@ -270,11 +276,15 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
                     else {
                         if (filter_key_function) {
                             if (real_link.starts_with(core_website)) {
-                                queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                                if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
+                                    queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                                }
                             }
                         }
                         else {
-                            queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
+                            if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
+                                queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                            }
                         }
 
                     }
@@ -303,7 +313,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 //-----------------------------------------------------------------------------
 
 
-int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function) {
+int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function, std::string filter_word) {
 
     // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
     // The sub-sites would be stored in a setlist
@@ -337,7 +347,8 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     auto start = std::chrono::high_resolution_clock::now();
 
     for (size_t i = 0; i < number_of_threads; ++i) {
-        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function);
+        workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function,
+            filter_word);
 
     }
 
