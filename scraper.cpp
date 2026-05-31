@@ -85,7 +85,7 @@ std::string FindMainURL(std::string url) {
     }
 
 
-void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue , std::string core_website, bool filter_key_function) {
+void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::string, int>>& queue , std::string core_website, bool filter_key_function) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -106,19 +106,23 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
         std::string readBuffer;
         std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
 
-        if (visited_sites.size() > 20) {
+        if (visited_sites.size() > 200) {
             return;
         }
 
-        std::string website;
-        website = queue.check_and_pop();
 
-        if (website == "done") {
+        std::pair<std::string, int> current_pair = queue.check_and_pop();
+
+        std::string website = current_pair.first;
+        int current_depth = current_pair.second;
+
+        if (website == "") {
             return;
         }
 
-        visited_sites.add(website); // TODO: Check later if checking existance at this point is better
+        //visited_sites.add(website); // TODO: Check later if checking existance at this point is better
 
+        visited_sites.add_and_update_distance(website, current_depth); //if it has a lower depth, then scrape it again
 
         CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
         if(result != CURLE_OK)
@@ -171,7 +175,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
                 std::set<std::string> links;
                 std::string::const_iterator searchStart(readBuffer.cbegin());
 
-                std::cout << "Links:" << std::endl;
+                //std::cout << "Links:" << std::endl;
                 while (std::regex_search(searchStart, readBuffer.cend(), match, link_pattern)) {
                     links.insert(match[1]);
                     searchStart = match.suffix().first;
@@ -188,16 +192,30 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::string>& queue
                     else{
                         real_link = link;
                     }
-                    if (!visited_sites.contains(real_link)) {
+                    int tested_distance = -1;
+                    if (visited_sites.contains_and_distance(real_link, tested_distance)) { //performance sink
+                        if (tested_distance > current_depth + 1){
+                            if (filter_key_function) {
+                                if (real_link.starts_with(core_website)) {
+                                    queue.push(std::pair(real_link, current_depth +1) );
+                                }
+                            }
+                        else {
+                            queue.push(std::pair(real_link, current_depth +1) );
+                        }
+                        }
+                        //std::cout << real_link << std::endl;
+                    }
+                    else {
                         if (filter_key_function) {
                             if (real_link.starts_with(core_website)) {
-                                queue.push(real_link);
+                                queue.push(std::pair(real_link, current_depth +1) );
                             }
                         }
                         else {
-                            queue.push(real_link);
+                            queue.push(std::pair(real_link, current_depth +1) );
                         }
-                        std::cout << real_link << std::endl;
+
                     }
 
 
@@ -246,9 +264,9 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
 ;
 
-    SafeUnboundedQueueCV<std::string> queue;
+    SafeUnboundedQueueCV<std::pair<std::string, int>> queue;
     queue.total_threads = number_of_threads;
-    queue.push(website);
+    queue.push({website,0});
 
 
     std::string core_website = FindMainURL(website);
@@ -279,7 +297,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     Node* curr = visited_sites.begin() -> next;
 
     while (curr->next != NULL) {
-        outfile << curr->item << std::endl;
+        outfile << curr->item << " " << curr->distance << std::endl;
         curr = curr->next;
     }
 

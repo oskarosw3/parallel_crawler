@@ -40,6 +40,6 @@ int main() {
     // std::cout << urls.size() << std::endl;
 
     //Scraper("https://steamculturalcapital.com/", 1, "scraped_websites.txt", true);
-    Scraper("https://en.wikipedia.org/wiki/There_Will_Be_Blood", 1, "scraped_websites.txt", true);
+    Scraper("https://www.podatki.gov.pl", 10, "scraped_websites.txt", true);
     return 0;
 }

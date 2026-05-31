@@ -10,6 +10,7 @@ class Node {
 public:
     std::mutex lock;
     std::string item;
+    int distance; //how far away from the main link it is
     unsigned long key;
     Node * next;
     Node() {}
@@ -52,8 +53,10 @@ public:
     Node* end() { return end_aux(head);}
 
     bool add(const std::string& val);
+    bool add_and_update_distance(const std::string& val, int distance);
     bool remove(const std::string& val);
     bool contains(const std::string& val) const;
+    bool contains_and_distance(const std::string& val, int& distance);
 
     template <typename F>
     void transform(F f);

@@ -59,7 +59,7 @@ E SafeUnboundedQueueCV<E>::check_and_pop() {
         if (is_empty()) {
             finished = true; //doesn't have to be atomic as we only change it to true
             wake_up();
-            return "done";
+            return E();
 
         }
     }
@@ -69,7 +69,7 @@ E SafeUnboundedQueueCV<E>::check_and_pop() {
 
         // dispose of lock while it waits
         this->not_empty.wait(guard);
-        if (finished){ return "done";}
+        if (finished){ return E();}
 
     }
     threads_waiting.fetch_sub(1);

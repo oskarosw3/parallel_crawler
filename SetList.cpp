@@ -80,6 +80,27 @@ bool SetList::add(const std::string& val) {
     return !exists;
 }
 
+bool SetList::add_and_update_distance(const std::string& val, int distance) {
+    Node* pred = this->search(val);
+    Node* curr = pred->next;
+    bool exists = (curr->key == std::hash<std::string>{}(val));
+
+    if (!exists) {
+        Node* node = new Node(val);
+        node->next = curr;
+        node->distance = distance;
+        pred->next = node;
+    }
+    else {
+        if (distance < curr->distance) {
+            curr->distance = distance;
+        }
+    }
+    pred->lock.unlock();
+    curr->lock.unlock();
+    return !exists;
+}
+
 bool SetList::remove(const std::string& val) {
     Node* pred = this->search(val);
     Node* curr = pred->next;
@@ -101,6 +122,17 @@ bool SetList::contains(const std::string& val) const {
     curr->lock.unlock();
     return exists;
 }
+
+bool SetList::contains_and_distance(const std::string& val, int& distance) {
+    Node* pred = this->search(val);
+    Node* curr = pred->next;
+    bool exists = (curr->key == std::hash<std::string>{}(val));
+    distance = curr->distance;
+    pred->lock.unlock();
+    curr->lock.unlock();
+    return exists;
+}
+
 
 void SetList::print() const {
     Node* cur = this->head->next;
