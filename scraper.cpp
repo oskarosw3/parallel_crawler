@@ -79,7 +79,7 @@ std::string FindMainURL(const std::string& url) {
 
 
 void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue ,
-    std::string core_website, bool filter_key_function, std::string filter_word, int nb_of_sites) {
+    std::string core_website, bool filter_key_function, std::string filter_word, int nb_of_sites, std::vector <std::string> bad_words) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -149,7 +149,16 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
             for (const auto& link : links) {
                 //std::cout << link << std::endl;
                 if (link.starts_with('#')) continue; //wikipedia clauses
-                if (link.find("index.php") != std::string::npos) continue;  //wikipedia clauses
+                //if (link.find("index.php") != std::string::npos) continue;  //wikipedia clause
+
+                bool bad_words_in = false;
+                for (auto& word : bad_words) {
+                    if (link.find(word) != std::string::npos) {
+                        bad_words_in = true;
+                    }
+                }
+                if (bad_words_in) continue;
+
                 if (link.starts_with('/')) {
                     real_link = core_website + link;
                 }
@@ -250,7 +259,14 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
                 for (const auto& link : links) {
                     //std::cout << link << std::endl;
                     if (link.starts_with('#')) continue; //wikipedia clauses
-                    if (link.find("index.php") != std::string::npos) continue;  //wikipedia clauses
+                    //if (link.find("index.php") != std::string::npos) continue;  //wikipedia clauses
+                    bool bad_words_in = false;
+                    for (auto& word : bad_words) {
+                        if (link.find(word) != std::string::npos) {
+                            bad_words_in = true;
+                        }
+                    }
+                    if (bad_words_in) continue;
                     if (link.starts_with('/')) {
                         real_link = core_website + link;
                     }
@@ -324,7 +340,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 //-----------------------------------------------------------------------------
 
 
-int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function, std::string filter_word) {
+int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function, std::string filter_word,
+    std::vector <std::string> bad_words) {
 
     // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
     // The sub-sites would be stored in a setlist
@@ -355,13 +372,13 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 40000;
+    int nb_of_sites = 30000;
     auto start = std::chrono::high_resolution_clock::now();
 
 
     for (size_t i = 0; i < number_of_threads; ++i) {
         workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function,
-            filter_word, nb_of_sites);
+            filter_word, nb_of_sites, bad_words);
 
     }
 

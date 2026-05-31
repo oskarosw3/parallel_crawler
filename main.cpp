@@ -49,7 +49,24 @@ int main() {
     //
 
 
-    Scraper("https://minecraft.wiki/", 30, "scraped_websites.txt", true, "");
+    std::vector <std::string> bad_words;
+
+    // for minecraft wiki
+    bad_words.push_back("section");
+    bad_words.push_back("talk");
+    bad_words.push_back("action");
+    bad_words.push_back("user");
+    bad_words.push_back("File");
+    bad_words.push_back("Forum");
+    bad_words.push_back("?");
+    bad_words.push_back("#");
+
+
+    // for wikipedia
+    //bad_words.push_back("index.php");
+
+    Scraper("https://minecraft.wiki/", 30, "scraped_websites.txt", true, "",
+        bad_words);
     //Scraper("https://en.wikipedia.org/wiki/Karl_Weierstrass", 20, "scraped_websites.txt", true, "");
     //Scraper("https://www.podatki.gov.pl/", 20, "scraped_websites.txt", true, "");
     return 0;
