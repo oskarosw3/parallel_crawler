@@ -124,7 +124,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
         std::pair<std::pair<std::string, int>, std::string> current_pair = queue.check_and_pop();
-
+        //visited_sites.time_points.push_back(std::chrono::high_resolution_clock::now());
         std::pair<std::string, int> new_pair = current_pair.first;
         std::string parent = current_pair.second;
 
@@ -372,7 +372,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 30000;
+    int nb_of_sites = 10000;
     auto start = std::chrono::high_resolution_clock::now();
 
 

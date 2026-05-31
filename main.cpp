@@ -60,6 +60,9 @@ int main() {
     bad_words.push_back("Forum");
     bad_words.push_back("?");
     bad_words.push_back("#");
+    bad_words.push_back("User");
+    bad_words.push_back("Talk");
+    bad_words.push_back("Special");
 
 
     // for wikipedia

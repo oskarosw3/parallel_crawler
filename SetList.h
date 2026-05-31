@@ -49,6 +49,7 @@ protected:
 
 public:
     std::atomic_int nb_nodes = 0;
+    std::vector<std::chrono::high_resolution_clock::time_point> time_points;
     SetList();
     ~SetList();
     //those functions for auto&, they are not thread-safe but they are only used in a non-concurrent part
