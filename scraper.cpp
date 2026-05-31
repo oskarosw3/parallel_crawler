@@ -79,7 +79,7 @@ std::string FindMainURL(const std::string& url) {
 
 
 void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue ,
-    std::string core_website, bool filter_key_function, std::string filter_word) {
+    std::string core_website, bool filter_key_function, std::string filter_word, int nb_of_sites) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -95,9 +95,13 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
     std::string readBuffer;
     re2::RE2 link_pattern("<a\\s+[^>]*?href=\"([^\"]*)\"");
 
+
+
     CURLcode result = curl_global_init(CURL_GLOBAL_ALL); //for some reason this being here and not outside speeds up by x2
-    if(result != CURLE_OK)
+    if(result != CURLE_OK) {
+        //std::cout << "error for website " << core_website << std::endl;
         return;
+    }
 
 
 
@@ -107,7 +111,13 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
 
-        if (visited_sites.size() > 200) {
+        //if (visited_sites.nb_nodes % 1000 == 0) {
+        //    std::printf("%d",visited_sites.nb_nodes.fetch_add(0));
+        //}
+
+
+
+        if (visited_sites.nb_nodes > nb_of_sites) {
             curl_easy_cleanup(curl);
             return;
         }
@@ -254,6 +264,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
                 OnlyStartingWith(&working_links, core_website);
 
                 for (const auto& real_link : working_links) {
+                    //std::cout << real_link << std::endl;
                     int tested_distance = -1;
                     if (visited_sites.contains_and_distance(real_link, tested_distance)) {
                         if (tested_distance > current_depth + 1){
@@ -344,11 +355,13 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
     std::string core_website = FindMainURL(website);
 
+    int nb_of_sites = 40000;
     auto start = std::chrono::high_resolution_clock::now();
+
 
     for (size_t i = 0; i < number_of_threads; ++i) {
         workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function,
-            filter_word);
+            filter_word, nb_of_sites);
 
     }
 
@@ -369,11 +382,32 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     std::ofstream outfile;
     outfile.open(file_name, std::ofstream::trunc);
     Node* curr = visited_sites.begin() -> next;
-
+    outfile << "site,distance,parent" << std::endl;
     while (curr->next != NULL) {
-        outfile << curr->item << " " << curr->distance << "    parent: " << curr->parent  << std::endl;
+        outfile << curr->item << "," << curr->distance << "," << curr->parent  << std::endl;
         curr = curr->next;
     }
+
+    std::string website_file = core_website;
+
+    for (size_t i = 0; i < core_website.size(); ++i) {
+        if (core_website[i] == '.' || core_website[i] == '/' || core_website[i] == ':') {
+            website_file[i] = '-';
+        }
+        else {
+            website_file[i] = core_website[i];
+        }
+    }
+    website_file += ".txt";
+
+    std::ofstream website_outfile;
+    website_outfile.open(website_file, std::ofstream::app );
+
+    if (website_outfile.tellp() == 0) {
+        website_outfile << "sites_scraped,number_of_threads,time" << std::endl;
+    }
+    auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    website_outfile <<  nb_of_sites << ',' << num_threads<< ',' << (microseconds)/1000000.0  << std::endl;
 
 
     return 0;

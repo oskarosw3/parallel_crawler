@@ -17,6 +17,8 @@ public:
     bool has_links = false;
     std::string parent;
 
+
+
     Node * next;
     Node() {}
     Node(const std::string& s) {
@@ -37,6 +39,7 @@ void DeleteNodeChain(Node* start);
 class SetList {
 protected:
     Node* head;
+
     static const unsigned long LOWEST_KEY = 0;
     static const unsigned long LARGEST_KEY = ULONG_MAX;
 
@@ -45,6 +48,7 @@ protected:
     Node* search(const std::string& val) const;
 
 public:
+    std::atomic_int nb_nodes = 0;
     SetList();
     ~SetList();
     //those functions for auto&, they are not thread-safe but they are only used in a non-concurrent part

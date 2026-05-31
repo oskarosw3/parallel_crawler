@@ -91,6 +91,7 @@ bool SetList::add_and_update_distance(const std::string& val, int distance, std:
         node->distance = distance;
         node->parent = parent;
         pred->next = node;
+        nb_nodes.fetch_add(1);
     }
     else {
         if (distance < curr->distance) {

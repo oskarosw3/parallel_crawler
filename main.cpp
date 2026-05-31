@@ -40,6 +40,17 @@ int main() {
     // std::cout << urls.size() << std::endl;
 
     //Scraper("https://steamculturalcapital.com/", 1, "scraped_websites.txt", true);
-    Scraper("https://www.podatki.gov.pl", 10, "scraped_websites.txt", true, "");
+
+
+
+
+    //   NOTES REGARDING WEBSITES:
+    // grokipedia is a bad choice, as it is very poorly optimised and thus multiplies the runtime significantly
+    //
+
+
+    Scraper("https://minecraft.wiki/", 30, "scraped_websites.txt", true, "");
+    //Scraper("https://en.wikipedia.org/wiki/Karl_Weierstrass", 20, "scraped_websites.txt", true, "");
+    //Scraper("https://www.podatki.gov.pl/", 20, "scraped_websites.txt", true, "");
     return 0;
 }
