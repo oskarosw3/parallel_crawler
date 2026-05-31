@@ -230,9 +230,10 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
                 }
 
-                visited_sites.add_links(website, links);
+
 
                 std::string real_link;
+                std::set<std::string> working_links;
 
                 for (const auto& link : links) {
                     //std::cout << link << std::endl;
@@ -244,6 +245,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                     else{
                         real_link = link;
                     }
+                    working_links.insert(real_link);
                     int tested_distance = -1;
                     if (visited_sites.contains_and_distance(real_link, tested_distance)) {
                         if (tested_distance > current_depth + 1){
@@ -269,6 +271,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                         }
 
                     }
+                    visited_sites.add_links(website, working_links); // links that don't include fake links
 
 
                 }
