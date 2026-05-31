@@ -97,13 +97,24 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
 
     // Problem -> it's not a full BFS with the way my Queue will take care of them, and we might not get proper "shortest link", but checking if in and then check if n_stored < n_new might be costly
+    CURL *curl;
+    std::string readBuffer;
+    std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
+
+    CURLcode result = curl_global_init(CURL_GLOBAL_ALL); //for some reason this being here and not outside speeds up by x2
+    if(result != CURLE_OK)
+        return;
+
+
 
     while (1) {
-        CURL *curl;
-        std::string readBuffer;
-        std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)";
 
-        if (visited_sites.size() > 1000) {
+        readBuffer.clear();
+
+
+
+        if (visited_sites.size() > 200) {
+            curl_easy_cleanup(curl);
             return;
         }
 
@@ -113,7 +124,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
         std::string website = current_pair.first;
         int current_depth = current_pair.second;
 
-        if (website == "") {
+        if (website == "")  {
+            curl_easy_cleanup(curl);
             return;
         }
 
@@ -169,14 +181,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
         else {
 
 
+            curl = curl_easy_init();
 
-
-
-        CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
-        if(result != CURLE_OK)
-            return;
-
-        curl = curl_easy_init();
         if(curl) {
 
             //static const char *headerfilename = "head.out";
@@ -208,6 +214,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
             //curl_easy_setopt(curl, CURLOPT_HEADERDATA, headerfile);
 
+            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); //for multithreading
 
             result = curl_easy_perform(curl);
             //std::cout << "readBuffer" << readBuffer << std::endl;
@@ -281,7 +288,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
             //fclose(headerfile);
 
-            curl_easy_cleanup(curl); //TODO: Think if it might be better to setup once and just change websites
+            //curl_easy_cleanup(curl); //TODO: Think if it might be better to setup once and just change websites
 
         }
         }
@@ -344,8 +351,8 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    std::cout << end - start << std::endl;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start) << std::endl;
+    //std::cout << end - start << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start)/1000.0 << std::endl;
 
     //https://stackoverflow.com/questions/33588266/how-to-save-txt-file-in-c
     std::ofstream outfile;
