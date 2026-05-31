@@ -23,6 +23,8 @@
 #include "scraper.h"
 #include "queue.h"
 //#include "coarse_set.h"
+#include <strings.h>
+
 #include "SetList.h"
 
 typedef std::vector<uint32_t>::const_iterator Iter;
@@ -47,24 +49,14 @@ void Identity(std::vector<char*> urls) {
     return;
 }
 
-void OnlyStartingWith(std::vector<std::string>* urls, std::string start) { //
+void OnlyStartingWith(std::set<std::string>* urls, std::string start) { //
 
-    // https://en.cppreference.com/cpp/regex/regex_match
-    std::string regex_start = start + "(.)*";
-    std::smatch match;
-
-    std::regex re(regex_start);
-    std::vector<int> indexes_to_erase;
-    for (int index = 0; index < urls->size(); index++) {
-        if (!std::regex_match((*urls)[index], re )) {
-            indexes_to_erase.push_back(index);
-        }
-    }
-    for (int index = 0; index < indexes_to_erase.size(); index++) {
-        urls->erase(urls->begin() + indexes_to_erase[index]- index);
-    }
-
+    std::erase_if(*urls, [&start](const std::string& url) {
+        return !(url.starts_with(start) || url.starts_with('/') );
+    });
 }
+
+
 
 std::string FindMainURL(std::string url) {
 
@@ -242,6 +234,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                 std::string real_link;
                 std::set<std::string> working_links;
 
+
+
                 for (const auto& link : links) {
                     //std::cout << link << std::endl;
                     if (link.starts_with('#')) continue; //wikipedia clauses
@@ -253,6 +247,12 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
                         real_link = link;
                     }
                     working_links.insert(real_link);
+
+                }
+
+                OnlyStartingWith(&working_links, core_website);
+
+                for (const auto& real_link : working_links) {
                     int tested_distance = -1;
                     if (visited_sites.contains_and_distance(real_link, tested_distance)) {
                         if (tested_distance > current_depth + 1){
@@ -288,7 +288,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::stri
 
             //fclose(headerfile);
 
-            //curl_easy_cleanup(curl); //TODO: Think if it might be better to setup once and just change websites
+            //curl_easy_cleanup(curl); //DONE: Think if it might be better to setup once and just change websites
 
         }
         }
