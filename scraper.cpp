@@ -379,7 +379,7 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 100;
+    int nb_of_sites = 100000;
     auto start = std::chrono::high_resolution_clock::now();
 
 
