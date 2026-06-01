@@ -7,18 +7,14 @@
 #include <vector>
 #include <cmath>
 #include <curl/curl.h>
-#include <climits>
 #include <future>
 #include <string>
-#include <string_view>
-#include <type_traits>
 #include <fstream>
 
 #include <regex>
 //#include <re2/re2.h>
 #include <set>
 #include <mutex>
-#include <queue>
 #include <condition_variable>
 
 #include "scraper.h"
@@ -35,14 +31,6 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* use
     userp->append((char*)contents, totalSize);
     return totalSize;
 }
-
-static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *stream)
-{
-    size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
-    return written;
-}
-
-
 
 
 void Identity(std::vector<char*> urls) {
@@ -106,7 +94,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
 
-    while (1) {
+    while (true) {
 
         readBuffer.clear();
 
@@ -217,7 +205,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
             // For the wikipedia to work
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            struct curl_slist *headers = NULL;
+            struct curl_slist *headers = nullptr;
             headers = curl_slist_append(headers, "User-Agent: Parallel_Crawler");
             //headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate");
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -286,40 +274,41 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
                 }
 
+
                 OnlyStartingWith(&working_links, core_website);
 
-                for (const auto& real_link : working_links) {
-                    //std::cout << real_link << std::endl;
+                for (const auto& real_link_2 : working_links) {
+                    //std::cout << real_link_2 << std::endl;
                     int tested_distance = -1;
-                    if (visited_sites.contains_and_distance(real_link, tested_distance)) {
+                    if (visited_sites.contains_and_distance(real_link_2, tested_distance)) {
                         if (tested_distance > current_depth + 1){
                             if (filter_key_function) {
-                                if (real_link.starts_with(core_website)) {
-                                    if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
-                                        queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                                if (real_link_2.starts_with(core_website)) {
+                                    if (real_link_2.find(filter_word) != std::string::npos || filter_word == "") {
+                                        queue.push(std::pair(std::pair(real_link_2, current_depth +1), website) );
                                     }
 
                                 }
                             }
                         else {
-                            if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
-                                queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                            if (real_link_2.find(filter_word) != std::string::npos || filter_word == "") {
+                                queue.push(std::pair(std::pair(real_link_2, current_depth +1), website) );
                             }
                         }
                         }
-                        //std::cout << real_link << std::endl;
+                        //std::cout << real_link_2 << std::endl;
                     }
                     else {
                         if (filter_key_function) {
-                            if (real_link.starts_with(core_website)) {
-                                if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
-                                    queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                            if (real_link_2.starts_with(core_website)) {
+                                if (real_link_2.find(filter_word) != std::string::npos || filter_word == "") {
+                                    queue.push(std::pair(std::pair(real_link_2, current_depth +1), website) );
                                 }
                             }
                         }
                         else {
-                            if (real_link.find(filter_word) != std::string::npos || filter_word == "") {
-                                queue.push(std::pair(std::pair(real_link, current_depth +1), website) );
+                            if (real_link_2.find(filter_word) != std::string::npos || filter_word == "") {
+                                queue.push(std::pair(std::pair(real_link_2, current_depth +1), website) );
                             }
                         }
 
@@ -341,7 +330,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
         //std::cout << "a" << std::endl;
     }
-    return;
+
     // For the number of threads active at the same time it might be best to check with the
 }
 
@@ -367,7 +356,6 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     std::vector<std::thread> workers(number_of_threads);
 
     SetList visited_sites;
-    std::atomic_int finished_threads = 0;
     std::condition_variable not_empty;
 
     // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
@@ -381,7 +369,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 10000;
+    int nb_of_sites = 1000;
     auto start = std::chrono::high_resolution_clock::now();
 
 
@@ -409,7 +397,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     outfile.open(file_name, std::ofstream::trunc);
     Node* curr = visited_sites.begin() -> next;
     outfile << "site,distance,parent" << std::endl;
-    while (curr->next != NULL) {
+    while (curr->next != nullptr) {
         outfile << curr->item << "," << curr->distance << "," << curr->parent  << std::endl;
         curr = curr->next;
     }
@@ -432,7 +420,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     if (website_outfile.tellp() == 0) {
         website_outfile << "sites_scraped,number_of_threads,time" << std::endl;
     }
-    auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    double microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     website_outfile <<  nb_of_sites << ',' << num_threads<< ',' << (microseconds)/1000000.0  << std::endl;
 
 

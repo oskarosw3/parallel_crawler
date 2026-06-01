@@ -1,12 +1,12 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include <numeric>
-#include <iterator>
-#include <vector>
+//#include <numeric>
+//#include <iterator>
+//#include <vector>
 #include <cmath>
 #include <curl/curl.h>
-#include <climits>
+//#include <climits>
 #include <future>
 #include <string>
 
@@ -14,8 +14,8 @@
 #include <regex>
 #include <set>
 #include <mutex>
-#include <queue>
-#include <condition_variable>
+//#include <queue>
+//#include <condition_variable>
 
 #include "SetList.h"
 
@@ -23,7 +23,7 @@
 void DeleteNodeChain(Node* start) {
     Node* prev = start;
     Node* cur = prev->next;
-    while (cur != NULL) {
+    while (cur != nullptr) {
         delete prev;
         prev = cur;
         cur = cur->next;
@@ -34,7 +34,7 @@ void DeleteNodeChain(Node* start) {
 unsigned long SetList::size() const {
     unsigned long result = 0;
     Node* cur = this->head->next;
-    while (cur->next != NULL) {
+    while (cur->next != nullptr) {
         ++result;
         cur = cur->next;
     }
@@ -51,11 +51,10 @@ SetList::~SetList() {
 }
 
 Node* SetList::search(const std::string& val) const {
-    Node *pred, *curr;
     unsigned long key = std::hash<std::string>{}(val);
-    pred = head;
+    Node *pred = head;
     pred->lock.lock();
-    curr = pred->next;
+    Node *curr = pred->next;
     curr->lock.lock();
     while (curr->key < key) {
         pred->lock.unlock();
@@ -80,7 +79,7 @@ bool SetList::add(const std::string& val) {
     return !exists;
 }
 
-bool SetList::add_and_update_distance(const std::string& val, int distance, std::set<std::string> links, std::string& parent) {
+bool SetList::add_and_update_distance(const std::string& val, int distance, std::set<std::string>& links, std::string& parent) {
     Node* pred = this->search(val);
     Node* curr = pred->next;
     bool exists = (curr->key == std::hash<std::string>{}(val));
@@ -152,7 +151,7 @@ bool SetList::contains_and_distance(const std::string& val, int& distance) {
 
 void SetList::print() const {
     Node* cur = this->head->next;
-    while (cur->next != NULL) {
+    while (cur->next != nullptr) {
         std::cout << cur->item << " ";
         cur = cur->next;
     }
