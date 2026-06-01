@@ -15,7 +15,7 @@
 #include <fstream>
 
 #include <regex>
-#include <re2/re2.h>
+//#include <re2/re2.h>
 #include <set>
 #include <mutex>
 #include <queue>
@@ -93,7 +93,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
     // Problem -> it's not a full BFS with the way my Queue will take care of them, and we might not get proper "shortest link", but checking if in and then check if n_stored < n_new might be costly
     CURL *curl;
     std::string readBuffer;
-    re2::RE2 link_pattern("<a\\s+[^>]*?href=\"([^\"]*)\"");
+    std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)\"";
+    //re2::RE2 link_pattern("<a\\s+[^>]*?href=\"([^\"]*)\"");
 
 
 
@@ -238,15 +239,23 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
                 //https://en.cppreference.com/cpp/regex/regex_search
 
-                re2::StringPiece input(readBuffer); //change from regex to re2 (faster)
-                std::string extracted_link;
+                //re2::StringPiece input(readBuffer); //change from regex to re2 (faster)
+                //std::string extracted_link;
+
+                std::regex link_pattern(link_match);
+                std::smatch match;
 
                 std::set<std::string> links;
                 std::string::const_iterator searchStart(readBuffer.cbegin());
 
                 //std::cout << "Links:" << std::endl;
-                while (re2::RE2::FindAndConsume(&input, link_pattern, &extracted_link)) {
-                    links.insert(extracted_link);
+                //while (re2::RE2::FindAndConsume(&input, link_pattern, &extracted_link)) {
+                //    links.insert(extracted_link);
+                //}
+
+                while (std::regex_search(searchStart, readBuffer.cend(), match, link_pattern)) {
+                    links.insert(match[1]);
+                    searchStart = match.suffix().first;
                 }
 
 
