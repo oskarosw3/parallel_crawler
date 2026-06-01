@@ -79,8 +79,27 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
     // Problem -> it's not a full BFS with the way my Queue will take care of them, and we might not get proper "shortest link", but checking if in and then check if n_stored < n_new might be costly
-    CURL *curl;
+
+    //moved curl here because of DNS issues at school computers
+
+    CURL *curl = curl_easy_init();
     std::string readBuffer;
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    struct curl_slist *headers = nullptr;
+    headers = curl_slist_append(headers, "User-Agent: Parallel_Crawler");
+    //headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+    //  If i need writing to a file: https://curl.se/libcurl/c/sepheaders.html
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+    //curl_easy_setopt(curl, CURLOPT_HEADERDATA, headerfile);
+
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    if (!curl) {return;}
+
+
     std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)\"";
     //re2::RE2 link_pattern("<a\\s+[^>]*?href=\"([^\"]*)\"");
 
@@ -107,6 +126,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
         if (visited_sites.nb_nodes > nb_of_sites) {
+            curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
             return;
         }
@@ -121,6 +141,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
         int current_depth = new_pair.second;
 
         if (website == "")  {
+            curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
             return;
         }
@@ -186,9 +207,9 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
         else {
 
 
-            curl = curl_easy_init();
+            //curl = curl_easy_init();
 
-        if(curl) {
+        if(true) { //was curl
 
             //static const char *headerfilename = "head.out";
             //FILE *headerfile;
@@ -204,25 +225,13 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
             //curl_easy_setopt(curl, CURLOPT_URL, "https://pl.wikipedia.org/wiki/Braniewo");
 
             // For the wikipedia to work
-            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            struct curl_slist *headers = nullptr;
-            headers = curl_slist_append(headers, "User-Agent: Parallel_Crawler");
-            //headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate");
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-            //  If i need writing to a file: https://curl.se/libcurl/c/sepheaders.html
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
-            //curl_easy_setopt(curl, CURLOPT_HEADERDATA, headerfile);
-
-            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); //for multithreading
+             //for multithreading
 
             result = curl_easy_perform(curl);
             //std::cout << "readBuffer" << readBuffer << std::endl;
             if(result != CURLE_OK)
-                fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                        curl_easy_strerror(result));
+                fprintf(stderr, "curl_easy_perform() failed: %s   %s\n",
+                        curl_easy_strerror(result), website.c_str());
             else {
 
                 //https://en.cppreference.com/cpp/regex/regex_search
@@ -369,7 +378,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 1000;
+    int nb_of_sites = 100;
     auto start = std::chrono::high_resolution_clock::now();
 
 
@@ -390,7 +399,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     auto end = std::chrono::high_resolution_clock::now();
 
     //std::cout << end - start << std::endl;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start)/1000.0 << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000.0 << std::endl;
 
     //https://stackoverflow.com/questions/33588266/how-to-save-txt-file-in-c
     std::ofstream outfile;
