@@ -23,7 +23,7 @@
 #include "SetList.h"
 
 
-int main() {
+int main(int argc, char* argv[]) {
 
     // debug for filter functions
     // std::vector<std::string> urls;
@@ -63,13 +63,48 @@ int main() {
     bad_words.push_back("User");
     bad_words.push_back("Talk");
     bad_words.push_back("Special");
+    bad_words.push_back("Wikipedia");
 
 
     // for wikipedia
     //bad_words.push_back("index.php");
 
-    Scraper("https://minecraft.wiki/", 30, "scraped_websites.txt", true, "",
-        bad_words);
+    std::string website, filter_word;
+    int number_of_threads;
+    std::vector<std::string> bad_words_new;
+    if (argc > 1) {
+        website = argv[1];
+    }
+    else {
+        website = "https://minecraft.wiki/";
+    }
+
+    if (argc > 2) {
+        number_of_threads = std::stoi(argv[2]);
+    }
+    else {
+        number_of_threads = 10;
+    }
+
+    if (argc > 3) {
+        filter_word = argv[3];
+    }
+    else {
+        filter_word = "";
+    }
+
+    if (argc > 4) {
+        for (int i = 4; i < argc; i++) {
+            bad_words_new.push_back(argv[i]);
+        }
+    }
+    else {
+        for (int i = 0; i < bad_words.size(); i++) {
+            bad_words_new.push_back(bad_words[i]);
+        }
+    }
+
+    Scraper(website, number_of_threads, filter_word, bad_words_new);
     //Scraper("https://en.wikipedia.org/wiki/Karl_Weierstrass", 20, "scraped_websites.txt", true, "");
     //Scraper("https://www.podatki.gov.pl/", 20, "scraped_websites.txt", true, "");
     return 0;

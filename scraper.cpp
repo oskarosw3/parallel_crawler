@@ -347,7 +347,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 //-----------------------------------------------------------------------------
 
 
-int Scraper(std::string website, size_t number_of_threads,  std::string file_name, bool filter_key_function, std::string filter_word,
+int Scraper(std::string website, size_t number_of_threads, std::string filter_word,
     std::vector <std::string> bad_words) {
 
     // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
@@ -360,6 +360,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
     //temporary example as a placeholder to learn how libcurl works https://curl.se/libcurl/c/simple.html
 
 
+    bool filter_key_function = true;
 
     size_t num_threads = number_of_threads;
     std::vector<std::thread> workers(number_of_threads);
@@ -403,7 +404,7 @@ int Scraper(std::string website, size_t number_of_threads,  std::string file_nam
 
     //https://stackoverflow.com/questions/33588266/how-to-save-txt-file-in-c
     std::ofstream outfile;
-    outfile.open(file_name, std::ofstream::trunc);
+    outfile.open("scraped_websites.txt", std::ofstream::trunc);
     Node* curr = visited_sites.begin() -> next;
     outfile << "site,distance,parent" << std::endl;
     while (curr->next != nullptr) {
