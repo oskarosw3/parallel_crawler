@@ -78,14 +78,15 @@ int main(int argc, char* argv[]) {
     else {
         //website = "https://en.wikipedia.org/wiki/Karl_Weierstrass";
         //website = "https://www.podatki.gov.pl/";
-        website = "https://minecraft.wiki/";
+        //website = "https://minecraft.wiki/";
+        website = "https://vampire.survivors.wiki/";
     }
 
     if (argc > 2) {
         number_of_threads = std::stoi(argv[2]);
     }
     else {
-        number_of_threads = 10;
+        number_of_threads = 5;
     }
 
     if (argc > 3) {

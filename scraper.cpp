@@ -16,6 +16,8 @@
 #include <set>
 #include <mutex>
 #include <condition_variable>
+#include <format>
+#include <iomanip>
 
 #include "scraper.h"
 #include "queue.h"
@@ -87,7 +89,13 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
     std::string readBuffer;
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     struct curl_slist *headers = nullptr;
-    headers = curl_slist_append(headers, "User-Agent: Parallel_Crawler");
+    https://stackoverflow.com/questions/79633203/convert-stdthreadid-to-stdstring
+
+    std::ostringstream ss;
+    ss << std::this_thread::get_id();
+
+    std::string header = "User-Agent: Parallel_Crawler/" + ss.str();
+    headers = curl_slist_append(headers, header.c_str());
     //headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
@@ -233,12 +241,29 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
             result = curl_easy_perform(curl);
 
-            long http_code = 0;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-            if (http_code == 429) {
-                //printf("rate_limited\n");
-                rate_limits.fetch_add(1);
+
+            int max_retries = 0;
+            int retries = 0;
+
+            while (retries < max_retries) {
+
+                long http_code = 0;
+                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+                if (http_code == 429) {
+                    //printf("rate_limited\n");
+                    rate_limits.fetch_add(1 << retries);
+                    int sleep_time = 50 * (1 << retries);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
+                    //std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time));
+                    retries++;
+                    continue;
+                }
+                break;
+
             }
+
+
 
             //std::cout << "readBuffer" << readBuffer << std::endl;
             if(result != CURLE_OK)
@@ -395,9 +420,10 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 1500;
+    int nb_of_sites = 5000;
 
-    CURLcode result = curl_global_init(CURL_GLOBAL_ALL); //for some reason this being here and not outside speeds up by x2
+    CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
+
     if(result != CURLE_OK) {
         //std::cout << "error for website " << core_website << std::endl;
         return 1;
@@ -425,8 +451,8 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
     auto end = std::chrono::high_resolution_clock::now();
 
     //std::cout << end - start << std::endl;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000.0 << std::endl;
-    std::cout << "Times rate limited:" << rate_limits << std::endl;
+    std::cout << "Runtime " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000.0 << "s" << std::endl;
+    std::cout << "Time waiting while rate limited:" << rate_limits.load() * 50 /1000.0 << "s" << std::endl;
 
     //https://stackoverflow.com/questions/33588266/how-to-save-txt-file-in-c
     std::ofstream outfile;
@@ -448,16 +474,16 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
             website_file[i] = core_website[i];
         }
     }
-    website_file += ".txt";
+    website_file += "1.txt";
 
     std::ofstream website_outfile;
     website_outfile.open(website_file, std::ofstream::app );
 
     if (website_outfile.tellp() == 0) { // is it at the first line
-        website_outfile << "sites_scraped,number_of_threads,time" << std::endl;
+        website_outfile << "sites_scraped,number_of_threads,time,adjusted_time" << std::endl;
     }
     double microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    website_outfile <<  visited_sites.size() << ',' << num_threads<< ',' << (microseconds)/1000000.0  << std::endl;
+    website_outfile <<  visited_sites.size() << ',' << num_threads<< ',' << (microseconds)/1000000.0 << ','  << microseconds/1000000.0 - rate_limits.load() * 50 /1000.0 << std::endl;
 
 
     if (debug_time_array) {
