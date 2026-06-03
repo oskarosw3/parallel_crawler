@@ -11,6 +11,8 @@
 #include <queue>
 #include <condition_variable>
 
+#include "SetList.h"
+
 template <class E>
 class SafeUnboundedQueueCV {
     std::queue<E> elements;
@@ -26,6 +28,7 @@ public:
     E pop();
     E check_and_pop();
     void wake_up();
+
     bool is_empty() const { return this->elements.empty(); }
 };
 
@@ -57,7 +60,7 @@ E SafeUnboundedQueueCV<E>::check_and_pop() {
     std::unique_lock<std::mutex> guard(this->lock);
     if (threads_waiting.load() == total_threads - 1 ) {
         if (is_empty()) {
-            finished = true; //doesn't have to be atomic as we only change it to true
+            finished = true; //signals to other threads that program terminates
             wake_up();
             return E();
 

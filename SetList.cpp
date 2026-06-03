@@ -65,6 +65,21 @@ Node* SetList::search(const std::string& val) const {
     return pred; 
 }
 
+Node* SetList::search_time(double time) const {
+    unsigned long key = std::hash<double>{}(time);
+    Node *pred = head;
+    pred->lock.lock();
+    Node *curr = pred->next;
+    curr->lock.lock();
+    while (curr->key < key) {
+        pred->lock.unlock();
+        pred = curr;
+        curr = curr->next;
+        curr->lock.lock();
+    }
+    return pred;
+}
+
 bool SetList::add(const std::string& val) {
     Node* pred = this->search(val);
     Node* curr = pred->next;
@@ -115,6 +130,21 @@ bool SetList::add_links(const std::string& val, std::set<std::string> links) {
     curr->lock.unlock();
     return 1;
 }
+
+bool SetList::add_times(double time) {
+    Node* pred = this->search_time(time);
+    Node* curr = pred->next;
+    bool exists = (curr->key == std::hash<double>{}(time));
+    if (!exists) {
+        Node* node = new Node(time);
+        node->next = curr;
+        pred->next = node;
+    }
+    pred->lock.unlock();
+    curr->lock.unlock();
+    return !exists;
+}
+
 
 bool SetList::remove(const std::string& val) {
     Node* pred = this->search(val);

@@ -67,7 +67,8 @@ std::string FindMainURL(const std::string& url) {
 
 
 void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue ,
-    std::string core_website, bool filter_key_function, std::string filter_word, int nb_of_sites, std::vector <std::string> bad_words) {
+    std::string core_website, bool filter_key_function, std::string filter_word, int nb_of_sites, std::vector <std::string> bad_words,
+    bool debug_time_array, SetList& times) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -111,7 +112,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
         return;
     }
 
-
+    double current_time;
 
     while (true) {
 
@@ -144,6 +145,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
             curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
             return;
+        }
+
+        if (debug_time_array) {
+            double seconds = std::chrono::duration<double>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+            times.add_times(seconds);
         }
 
         //visited_sites.add(website); // TODO: Check later if checking existance at this point is better
@@ -362,10 +368,14 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     bool filter_key_function = true;
 
+    bool debug_time_array = true;
+    SetList times;
+
     size_t num_threads = number_of_threads;
     std::vector<std::thread> workers(number_of_threads);
 
     SetList visited_sites;
+
     std::condition_variable not_empty;
 
     // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
@@ -379,13 +389,13 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 100000;
+    int nb_of_sites = 1000;
     auto start = std::chrono::high_resolution_clock::now();
 
 
     for (size_t i = 0; i < number_of_threads; ++i) {
         workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function,
-            filter_word, nb_of_sites, bad_words);
+            filter_word, nb_of_sites, bad_words, debug_time_array, std::ref(times));
 
     }
 
@@ -427,12 +437,26 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
     std::ofstream website_outfile;
     website_outfile.open(website_file, std::ofstream::app );
 
-    if (website_outfile.tellp() == 0) {
+    if (website_outfile.tellp() == 0) { // is it at the first line
         website_outfile << "sites_scraped,number_of_threads,time" << std::endl;
     }
     double microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    website_outfile <<  nb_of_sites << ',' << num_threads<< ',' << (microseconds)/1000000.0  << std::endl;
+    website_outfile <<  visited_sites.size() << ',' << num_threads<< ',' << (microseconds)/1000000.0  << std::endl;
 
+
+    if (debug_time_array) {
+        std::ofstream time_array_outfile;
+
+        time_array_outfile.open("time_array.txt", std::ofstream::trunc);
+
+        curr = times.begin();
+        while (curr->next != nullptr) {
+            time_array_outfile << std::fixed << std::setprecision(3) << curr->time << std::endl;
+            curr = curr->next;
+        }
+
+
+    }
 
     return 0;
 }

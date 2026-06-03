@@ -104,6 +104,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
+
+
     Scraper(website, number_of_threads, filter_word, bad_words_new);
     //Scraper("https://en.wikipedia.org/wiki/Karl_Weierstrass", 20, "scraped_websites.txt", true, "");
     //Scraper("https://www.podatki.gov.pl/", 20, "scraped_websites.txt", true, "");

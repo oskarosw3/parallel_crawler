@@ -17,6 +17,8 @@ public:
     bool has_links = false;
     std::string parent;
 
+    double time;
+
 
 
     Node * next;
@@ -29,6 +31,11 @@ public:
     Node(unsigned long k) {
         this->item = "";
         this->key = k;
+        this->next = NULL;
+    }
+    Node(double time) {
+        this->time = time;
+        this->key = std::hash<double>{}(time);
         this->next = NULL;
     }
 
@@ -46,10 +53,13 @@ protected:
     // returns the pointer to the last node with key < hash(val)
     // with keeping this and the next nodes locked
     Node* search(const std::string& val) const;
+    Node* search_time(double time) const;
 
 public:
     std::atomic_int nb_nodes = 0;
-    std::vector<std::chrono::high_resolution_clock::time_point> time_points;
+
+
+
     SetList();
     ~SetList();
     //those functions for auto&, they are not thread-safe but they are only used in a non-concurrent part
@@ -64,6 +74,7 @@ public:
 
     bool add(const std::string& val);
     bool add_and_update_distance(const std::string& val, int distance, std::set<std::string>& links, std::string& parent);
+    bool add_times(double time);
     bool add_links(const std::string& val, std::set<std::string> links);
     bool remove(const std::string& val);
     bool contains(const std::string& val) const;
@@ -74,6 +85,10 @@ public:
 
     void print() const; // for testing
     unsigned long size() const; // for testing
+
+
+
+
 };
 
 #endif //PARALLEL_CRAWLER_SET_LIST_H
