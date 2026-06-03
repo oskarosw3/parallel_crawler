@@ -245,7 +245,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
 
-            int max_retries = 1;
+            int max_retries = 5;
             int retries = 0;
 
             while (retries < max_retries) {
@@ -255,7 +255,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
                 curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
-                if (http_code == 429 && false) {
+                if (http_code == 429) {
                     //printf("rate_limited\n");
                     rate_limits.fetch_add(1 << retries);
                     int sleep_time = 50 * (1 << retries);
