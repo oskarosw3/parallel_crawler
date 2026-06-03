@@ -37,9 +37,7 @@ void SafeUnboundedQueueCV<E>::push(const E& element) {
     std::unique_lock<std::mutex> guard(this->lock);
     bool was_empty = this->elements.size() == 0;
     this->elements.push(element);
-    if (was_empty) {
-        this->not_empty.notify_all();
-    }
+    this->not_empty.notify_one();
 }
 
 template <class E>

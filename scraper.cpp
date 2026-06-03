@@ -68,7 +68,7 @@ std::string FindMainURL(const std::string& url) {
 
 void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue ,
     std::string core_website, bool filter_key_function, std::string filter_word, int nb_of_sites, std::vector <std::string> bad_words,
-    bool debug_time_array, SetList& times) {
+    bool debug_time_array, SetList& times, std::atomic_int& rate_limits) {
 
     //for more statistics there could be a atomic int with the current depth - not correct
     // maybe a second queue that has the same lock, but gives out the depth
@@ -106,11 +106,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
 
-    CURLcode result = curl_global_init(CURL_GLOBAL_ALL); //for some reason this being here and not outside speeds up by x2
-    if(result != CURLE_OK) {
-        //std::cout << "error for website " << core_website << std::endl;
-        return;
-    }
+    CURLcode result;
 
     double current_time;
 
@@ -127,6 +123,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
 
         if (visited_sites.nb_nodes > nb_of_sites) {
+            queue.finished = true;
+            queue.wake_up();
             curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
             return;
@@ -238,7 +236,8 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
             long http_code = 0;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
             if (http_code == 429) {
-                printf("rate_limited\n");
+                //printf("rate_limited\n");
+                rate_limits.fetch_add(1);
             }
 
             //std::cout << "readBuffer" << readBuffer << std::endl;
@@ -398,12 +397,20 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     int nb_of_sites = 1500;
 
+    CURLcode result = curl_global_init(CURL_GLOBAL_ALL); //for some reason this being here and not outside speeds up by x2
+    if(result != CURLE_OK) {
+        //std::cout << "error for website " << core_website << std::endl;
+        return 1;
+    }
+
+    std::atomic_int rate_limits(0);
+
     auto start = std::chrono::high_resolution_clock::now();
 
 
     for (size_t i = 0; i < number_of_threads; ++i) {
         workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function,
-            filter_word, nb_of_sites, bad_words, debug_time_array, std::ref(times));
+            filter_word, nb_of_sites, bad_words, debug_time_array, std::ref(times), std::ref(rate_limits));
 
     }
 
@@ -419,6 +426,7 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     //std::cout << end - start << std::endl;
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()/1000.0 << std::endl;
+    std::cout << "Times rate limited:" << rate_limits << std::endl;
 
     //https://stackoverflow.com/questions/33588266/how-to-save-txt-file-in-c
     std::ofstream outfile;
