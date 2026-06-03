@@ -76,6 +76,8 @@ int main(int argc, char* argv[]) {
         website = argv[1];
     }
     else {
+        //website = "https://en.wikipedia.org/wiki/Karl_Weierstrass";
+        //website = "https://www.podatki.gov.pl/";
         website = "https://minecraft.wiki/";
     }
 

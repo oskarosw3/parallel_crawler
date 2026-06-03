@@ -234,6 +234,13 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
              //for multithreading
 
             result = curl_easy_perform(curl);
+
+            long http_code = 0;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+            if (http_code == 429) {
+                printf("rate_limited\n");
+            }
+
             //std::cout << "readBuffer" << readBuffer << std::endl;
             if(result != CURLE_OK)
                 fprintf(stderr, "curl_easy_perform() failed: %s   %s\n",
@@ -368,7 +375,7 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     bool filter_key_function = true;
 
-    bool debug_time_array = true;
+    bool debug_time_array = false;
     SetList times;
 
     size_t num_threads = number_of_threads;
@@ -389,7 +396,8 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 1000;
+    int nb_of_sites = 1500;
+
     auto start = std::chrono::high_resolution_clock::now();
 
 
@@ -447,7 +455,7 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
     if (debug_time_array) {
         std::ofstream time_array_outfile;
 
-        time_array_outfile.open("time_array.txt", std::ofstream::trunc);
+        time_array_outfile.open("time_array_2.txt", std::ofstream::trunc);
 
         curr = times.begin();
         while (curr->next != nullptr) {
