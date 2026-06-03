@@ -204,17 +204,17 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
                     }
                     //std::cout << real_link << std::endl;
                 }
-                else {
-                    if (filter_key_function) {
-                        if (real_link.starts_with(core_website)) {
-                            queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
-                        }
-                    }
-                    else {
-                        queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
-                    }
-
-                }
+                // else {
+                //     if (filter_key_function) {
+                //         if (real_link.starts_with(core_website)) {
+                //             queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
+                //         }
+                //     }
+                //     else {
+                //         queue.push(std::pair(std::pair(real_link, current_depth +1), website)  );
+                //     }
+                //
+                // }
 
 
             }
