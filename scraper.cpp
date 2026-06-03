@@ -106,6 +106,9 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
     //curl_easy_setopt(curl, CURLOPT_HEADERDATA, headerfile);
 
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L); // if it doesn't work then dropout
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L); //
     if (!curl) {return;}
 
 
@@ -239,18 +242,20 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
             // For the wikipedia to work
              //for multithreading
 
-            result = curl_easy_perform(curl);
 
 
-            int max_retries = 0;
+
+            int max_retries = 1;
             int retries = 0;
 
             while (retries < max_retries) {
 
                 long http_code = 0;
+                result = curl_easy_perform(curl);
+
                 curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
-                if (http_code == 429) {
+                if (http_code == 429 && false) {
                     //printf("rate_limited\n");
                     rate_limits.fetch_add(1 << retries);
                     int sleep_time = 50 * (1 << retries);
@@ -359,11 +364,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
                         }
 
                     }
-                    visited_sites.add_links(website, working_links); // links that don't include fake links
+
 
 
                 }
-
+                visited_sites.add_links(website, working_links); // links that don't include fake links
 
             }
 
