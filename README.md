@@ -36,7 +36,7 @@ Without the arguments it defaults to:
 ```console
 ./parallel_crawler https://vampire.survivors.wiki/ 5   User Talk Special ? Wikipedia # Forum File user action talk section
 ```
-Which allows for proper crawl of Wikipedia and Vampire survivor wiki without the user sites, which explode the number of sites.
+The settings allow for proper crawl of Wikipedia and Vampire survivor wiki without the user sites, which explode the number of sites to visit.
 
 
 ### Features
