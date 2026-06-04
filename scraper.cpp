@@ -70,27 +70,17 @@ std::string FindMainURL(const std::string& url) {
 
 void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair<std::string, int>, std::string>>& queue ,
     std::string core_website, bool filter_key_function, std::string filter_word, int nb_of_sites, std::vector <std::string> bad_words,
-    bool debug_time_array, SetList& times, std::atomic_int& rate_limits) {
-
-    //for more statistics there could be a atomic int with the current depth - not correct
-    // maybe a second queue that has the same lock, but gives out the depth
-
+    bool debug_time_array, SetList& times, std::atomic_int& rate_limits, bool exponential_backoff) {
 
     //std::cout << FindMainURL("https://www.steamculturalcapital.com/") << std::endl;
     //std::cout << FindMainURL("https://www.twitch.tv/northernlion") << std::endl;
-    //currently it has errors due to atomic_int, cv mismatch, but the main idea is
-
-
-    // Problem -> it's not a full BFS with the way my Queue will take care of them, and we might not get proper "shortest link", but checking if in and then check if n_stored < n_new might be costly
-
-    //moved curl here because of DNS issues at school computers
 
     CURL *curl = curl_easy_init();
     std::string readBuffer;
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     struct curl_slist *headers = nullptr;
-    https://stackoverflow.com/questions/79633203/convert-stdthreadid-to-stdstring
 
+    // https://stackoverflow.com/questions/79633203/convert-stdthreadid-to-stdstring
     std::ostringstream ss;
     ss << std::this_thread::get_id();
 
@@ -111,7 +101,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L); //
     if (!curl) {return;}
 
-
+    // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
     std::string link_match = "<a\\s+[^>]*?href=\"([^\"]*)\"";
     //re2::RE2 link_pattern("<a\\s+[^>]*?href=\"([^\"]*)\"");
 
@@ -161,7 +151,6 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
             times.add_times(seconds);
         }
 
-        //visited_sites.add(website); // TODO: Check later if checking existance at this point is better
 
         std::set<std::string> possible_links;
 
@@ -239,13 +228,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
             curl_easy_setopt(curl, CURLOPT_URL, website.c_str());
             //curl_easy_setopt(curl, CURLOPT_URL, "https://pl.wikipedia.org/wiki/Braniewo");
 
-            // For the wikipedia to work
-             //for multithreading
 
 
 
 
-            int max_retries = 5;
+            int max_retries = 8;
             int retries = 0;
 
             while (retries < max_retries) {
@@ -255,7 +242,7 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
                 curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
-                if (http_code == 429) {
+                if (http_code == 429 && exponential_backoff) {
                     //printf("rate_limited\n");
                     rate_limits.fetch_add(1 << retries);
                     int sleep_time = 50 * (1 << retries);
@@ -372,17 +359,13 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 
             }
 
-            //fclose(headerfile);
 
-            //curl_easy_cleanup(curl); //DONE: Think if it might be better to setup once and just change websites
 
         }
         }
 
-        //std::cout << "a" << std::endl;
     }
 
-    // For the number of threads active at the same time it might be best to check with the
 }
 
 
@@ -392,19 +375,11 @@ void ScraperAux(SetList& visited_sites, SafeUnboundedQueueCV<std::pair<std::pair
 int Scraper(std::string website, size_t number_of_threads, std::string filter_word,
     std::vector <std::string> bad_words) {
 
-    // The main idea right now is to act on the website like the binary tree in the website, creating a thread for each subsequent link
-    // The sub-sites would be stored in a setlist
-
-    // it might be better to somehow get all links first
 
 
-
-    //temporary example as a placeholder to learn how libcurl works https://curl.se/libcurl/c/simple.html
-
-
-    bool filter_key_function = true;
-
-    bool debug_time_array = false;
+    bool filter_key_function = true; // trigger that it only checks sites with the same main domain
+    bool exponential_backoff = false;
+    bool debug_time_array = false; //trigger time array
     SetList times;
 
     size_t num_threads = number_of_threads;
@@ -414,7 +389,7 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     std::condition_variable not_empty;
 
-    // pattern for a link from https://stackoverflow.com/questions/15926142/regular-expression-for-finding-href-value-of-a-a-link
+
 
 ;
 
@@ -425,7 +400,8 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     std::string core_website = FindMainURL(website);
 
-    int nb_of_sites = 5000;
+    int nb_of_sites = 150000; //technically a limit, but it is an absurd number which will get rate_limited way faster than that
+    //for normal websites without exponential back-off, was more useful during testing
 
     CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
 
@@ -441,7 +417,7 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
 
     for (size_t i = 0; i < number_of_threads; ++i) {
         workers[i] = std::thread(ScraperAux, std::ref(visited_sites), std::ref(queue),core_website, filter_key_function,
-            filter_word, nb_of_sites, bad_words, debug_time_array, std::ref(times), std::ref(rate_limits));
+            filter_word, nb_of_sites, bad_words, debug_time_array, std::ref(times), std::ref(rate_limits), exponential_backoff);
 
     }
 

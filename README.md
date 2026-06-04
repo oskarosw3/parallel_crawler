@@ -1,37 +1,42 @@
-# parallel_crawler
+# Parallel_crawler
 Parallel Crawler made as a project for CSE305 : Concurrent and Distributed Computing at Ecole Polytechnique
 
 
 For installation the folllowing packages are needed: \
-curl -    \
-cmake -
+curl    \
+cmake \
+Both are initially available on the Salle Info PCs.
 
 
 ### Installation instruction
 
 Instalation of the program:
 
-git clone https://github.com/oskarosw3/parallel_crawler
-mkdir build
-cd build
-cmake ..
-make
-
+```console
+git clone https://github.com/oskarosw3/parallel_crawler 
+mkdir build 
+cd build 
+cmake .. 
+make 
+```
 To make the programme work on Polytechnique machines, min Cmake version was set to 3.3, but if you have up-to-date version, change the version in Cmakelist.txt to at least 3.5.
 
 ### Usage instruction
-
-./parallel_crawler starting_website, number_of_threads, word_that_has_to_be_included, banned_word_1, banned_word_2 etc.
-
+```console
+./parallel_crawler starting_website  number_of_threads  word_that_has_to_be_included  banned_word_1 banned_word_2 etc.
+```
 Example:
 
-./parallel_crawler https://minecraft.wiki/, 20,,User,Talk,Special,?
+```console
+./parallel_crawler https://minecraft.wiki/ 20 Block User Talk Special ?
+```
 
 Without the arguments it defaults to:
 
-./parallel_crawler https://minecraft.wiki/, 10,,User,Talk,Special,?,Wikipedia,#,Forum,File,user,action,talk,section
-
-Which allows for proper crawl of Wikipedia and Minecraft wiki without the user sites.
+```console
+./parallel_crawler https://vampire.survivors.wiki/ 5   User Talk Special ? Wikipedia # Forum File user action talk section
+```
+Which allows for proper crawl of Wikipedia and Vampire survivor wiki without the user sites, which explode the number of sites.
 
 
 ### Features
