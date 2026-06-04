@@ -461,10 +461,10 @@ int Scraper(std::string website, size_t number_of_threads, std::string filter_wo
     website_outfile.open(website_file, std::ofstream::app );
 
     if (website_outfile.tellp() == 0) { // is it at the first line
-        website_outfile << "sites_scraped,number_of_threads,time,adjusted_time" << std::endl;
+        website_outfile << "sites_scraped,number_of_threads,time,waiting_time" << std::endl;
     }
     double microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    website_outfile <<  visited_sites.size() << ',' << num_threads<< ',' << (microseconds)/1000000.0 << ','  << microseconds/1000000.0 - rate_limits.load() * 50 /1000.0 << std::endl;
+    website_outfile <<  visited_sites.size() << ',' << num_threads<< ',' << (microseconds)/1000000.0 << ','  <<  rate_limits.load() * 50 /1000.0 << std::endl;
 
 
     if (debug_time_array) {
